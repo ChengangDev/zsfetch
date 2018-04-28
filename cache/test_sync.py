@@ -1,15 +1,15 @@
 import unittest
-import cache.dboption
+from cache import dboption
 import logging as lg
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
-cache.dboption.logger.setLevel(lg.DEBUG)
+dboption.logger.setLevel(lg.DEBUG)
 
 
 class MyTestCase(unittest.TestCase):
     def test_sync_today(self):
-        db = cache.dboption.DbOption()
+        db = dboption.DbOption()
         db.sync_today()
         self.assertEqual(True, True)
 

@@ -1,10 +1,10 @@
 import unittest
 import logging
-import option.sse
+from option import sse
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s %(funcName)s() -- %(message)s"
 logging.basicConfig(level=logging.INFO, format=dbgFormatter)
-option.sse.logger.setLevel(logging.DEBUG)
+sse.logger.setLevel(logging.DEBUG)
 
 
 class MyTestCase(unittest.TestCase):
@@ -20,29 +20,29 @@ class MyTestCase(unittest.TestCase):
 
     def test_get_trading_option_summary(self):
         # empty
-        df = option.sse.get_trading_option_daily_summary('')
+        df = sse.get_trading_option_daily_summary('')
         logging.info("\n{}".format(df.head(2)))
         logging.info("\n{}".format(df.tail(2)))
-        self._check_df_columns(df.columns, option.sse.daily_summary_columns)
+        self._check_df_columns(df.columns, sse.daily_summary_columns)
         # has content
-        df = option.sse.get_trading_option_daily_summary()
+        df = sse.get_trading_option_daily_summary()
         logging.info("\n{}".format(df.head(2)))
         logging.info("\n{}".format(df.tail(2)))
         self.assertGreater(len(df.index), 0)
-        self._check_df_columns(df.columns, option.sse.daily_summary_columns)
+        self._check_df_columns(df.columns, sse.daily_summary_columns)
 
     def test_get_greeks(self):
         # empty
-        df = option.sse.get_greeks('2018-04-15')
+        df = sse.get_greeks('2018-04-15')
         logging.info("\n{}".format(df.head(2)))
         logging.info("\n{}".format(df.tail(2)))
-        self._check_df_columns(df.columns, option.sse.greeks_columns)
+        self._check_df_columns(df.columns, sse.greeks_columns)
         # has content
-        df = option.sse.get_greeks('2018-04-13')
+        df = sse.get_greeks('2018-04-13')
         logging.info("\n{}".format(df.head(2)))
         logging.info("\n{}".format(df.tail(2)))
         self.assertGreater(len(df.index), 0)
-        self._check_df_columns(df.columns, option.sse.greeks_columns)
+        self._check_df_columns(df.columns, sse.greeks_columns)
 
 
 if __name__ == '__main__':

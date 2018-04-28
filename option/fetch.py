@@ -2,7 +2,7 @@ from cache import dboption
 import pandas as pd
 import json
 import logging
-from . import sina
+from option import sina
 from cache import dboption
 
 logger = logging.getLogger(__name__)

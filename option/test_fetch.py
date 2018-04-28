@@ -1,5 +1,5 @@
 import unittest
-import fetch
+from option import fetch
 
 
 class MyTestCase(unittest.TestCase):

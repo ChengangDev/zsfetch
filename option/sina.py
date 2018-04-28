@@ -5,6 +5,7 @@ import json
 import logging
 import time
 import pandas as pd
+import requests
 
 logger = logging.getLogger(__name__)
 
@@ -193,15 +194,27 @@ def get_trading_option_history_ohlc(option_index, retry=3, pause=1):
     """
     if len(option_index) != 8:
         raise Exception("Wrong option_index format:{0}.".format(option_index))
-    url = "http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionDaylineService.getSymbolInfo" \
-          "?symbol={0}{1}".format(SINA_OPTION_INDEX_PREFIX, option_index)
-    logger.debug(url)
+    # url = "http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionDaylineService.getSymbolInfo" \
+    #      "?symbol={0}{1}".format(SINA_OPTION_INDEX_PREFIX, option_index)
+    # logger.debug(url)
+    headers = {
+        'Host': 'stock.finance.sina.com.cn',
+        'Referer': 'http://stock.finance.sina.com.cn'
+    }
+    url = "http://stock.finance.sina.com.cn/futures/api/openapi.php/StockOptionDaylineService.getSymbolInfo?"
+    params = {
+        'symbol': SINA_OPTION_INDEX_PREFIX + option_index
+    }
+    logger.debug("url:{} params:{}".format(url, params))
+
     df = pd.DataFrame(columns=ohlc_columns)
     for _ in range(retry):
         try:
-            req = Request(url)
-            res = urlopen(req, timeout=9).read()
-            js = json.loads(res.decode('utf-8'))
+            resp = requests.get(url, params=params, headers=headers)
+            js = resp.json()
+            # req = Request(url)
+            # res = urlopen(req, timeout=9).read()
+            # js = json.loads(res.decode('utf-8'))
             list_data = js['result']['data']
             df = pd.DataFrame(list_data)
             return df
