@@ -1,5 +1,5 @@
 import unittest
-from option import sina
+from optionsites import sina
 from datetime import date
 import logging
 

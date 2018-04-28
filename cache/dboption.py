@@ -3,7 +3,7 @@ import datetime
 import time
 import logging as lg
 import pandas as pd
-from option import sse, sina
+from optionsites import sse, sina
 
 logger = lg.getLogger(__name__)
 logger.setLevel(lg.WARNING)
@@ -193,12 +193,12 @@ class DbOption:
             logger.info("ohlc already sync.")
         else:
             logger.info("ohlc is syncing...")
-            for _, row in daily_summary.iterrows():
+            for i, row in daily_summary.iterrows():
                 option_index = row[COL_OPTION_INDEX]
                 if option_index in cache_index_list:
-                    logger.info("--{} exists.".format(option_index))
+                    logger.info("({}/{}){} exists.".format(i + 1, count, option_index))
                     continue
-                logger.info("--{} is syncing...".format(option_index))
+                logger.info("{} is syncing...".format(option_index))
                 ohlc = sina.get_trading_option_history_ohlc(option_index)
                 time.sleep(3)
                 ohlc[COL_OPTION_INDEX] = [option_index for _ in ohlc.index]
@@ -208,7 +208,7 @@ class DbOption:
                 #     ohlc.loc[i][COL_MILLISECONDS] = isodate_to_milliseconds(ohlc.loc[i][COL_TRADE_DATE])
                 self.upsert_ohlc(ohlc)
                 logger.debug("\n{}".format(ohlc.head(1)))
-                logger.info("--{} is done.".format(option_index))
+                logger.info("({}/{}){} is done.".format(i + 1, count, option_index))
             logger.info("ohlc is done.")
 
 
