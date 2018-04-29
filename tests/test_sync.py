@@ -1,18 +1,20 @@
 import logging as lg
 import unittest
 
-from zsfetch.derivativedb import optiondb
+from zsfetch import sync
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
-optiondb.logger.setLevel(lg.DEBUG)
+sync.logger.setLevel(lg.DEBUG)
 
 
 class MyTestCase(unittest.TestCase):
     def test_sync_today(self):
-        db = optiondb.OptionDB()
-        db.sync_today()
+        sync.sync_today()
         self.assertEqual(True, True)
+
+    def test_sync(self):
+        sync.sync_greeks()
 
 
 if __name__ == '__main__':

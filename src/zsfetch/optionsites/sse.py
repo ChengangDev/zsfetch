@@ -63,6 +63,13 @@ greeks_columns = [
 
 
 def get_trading_option_daily_summary(asset_code='510050', retry=3, pause=1):
+    '''
+
+    :param asset_code:
+    :param retry:
+    :param pause:
+    :return:
+    '''
     headers = {
         'Host': 'query.sse.com.cn',
         'Referer': 'http://www.sse.com.cn/assortment/options/disclo/preinfo/'
@@ -97,8 +104,15 @@ def get_trading_option_daily_summary(asset_code='510050', retry=3, pause=1):
 
 
 def get_greeks(trade_date='', retry=3, pause=1):
+    '''
+    http://query.sse.com.cn/commonQuery.do?sqlId=SSE_ZQPZ_YSP_GGQQZSXT_YSHQ_QQFXZB_DATE_L&isPagination=false&trade_date=20180109
+    :param trade_date:
+    :param retry:
+    :param pause:
+    :return:
+    '''
     if trade_date == '':
-        trade_date = datetime.date.today().isoformat()
+        trade_date = datetime.date.today().isoformat()[:10]
     trade_date = trade_date.replace('-', '')
     if len(trade_date) != 8:
         raise Exception("'{}' is not yyyy-mm-dd or yyyymmdd format".format(trade_date))
