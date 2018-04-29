@@ -48,7 +48,7 @@ def isodate_to_milliseconds(isodate='2000-01-01'):
     return int(ms)
 
 
-class DbOption:
+class OptionDB:
     '''
 
     '''

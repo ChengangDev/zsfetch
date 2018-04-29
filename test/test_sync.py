@@ -1,16 +1,16 @@
 import logging as lg
 import unittest
 
-from derivativedb import dboption
+from derivativedb import optiondb
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
-dboption.logger.setLevel(lg.DEBUG)
+optiondb.logger.setLevel(lg.DEBUG)
 
 
 class MyTestCase(unittest.TestCase):
     def test_sync_today(self):
-        db = dboption.DbOption()
+        db = optiondb.OptionDB()
         db.sync_today()
         self.assertEqual(True, True)
 
