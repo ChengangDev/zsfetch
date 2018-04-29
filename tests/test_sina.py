@@ -1,7 +1,8 @@
-import unittest
-from optionsites import sina
-from datetime import date
 import logging
+import unittest
+from datetime import date
+
+from zsfetch.optionsites import sina
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s %(funcName)s() -- %(message)s"
 logging.basicConfig(level=logging.INFO, format=dbgFormatter)

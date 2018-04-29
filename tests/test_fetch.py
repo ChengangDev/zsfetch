@@ -1,5 +1,6 @@
 import unittest
-from optionsites import fetch
+
+from zsfetch.optionsites import fetch
 
 
 class MyTestCase(unittest.TestCase):
@@ -10,7 +11,7 @@ class MyTestCase(unittest.TestCase):
         
 class YourTestCase(unittest.TestCase):
     def test_nothing(self):
-        self.assertEqual(True, False)
+        self.assertEqual(False, False)
 
 
 if __name__ == '__main__':

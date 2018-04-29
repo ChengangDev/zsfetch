@@ -1,6 +1,7 @@
-import unittest
 import logging
-from optionsites import sse
+import unittest
+
+from zsfetch.optionsites import sse
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s %(funcName)s() -- %(message)s"
 logging.basicConfig(level=logging.INFO, format=dbgFormatter)

@@ -3,7 +3,8 @@ import datetime
 import time
 import logging as lg
 import pandas as pd
-from optionsites import sse, sina
+from zsfetch.optionsites import sina
+from zsfetch.optionsites import sse
 
 logger = lg.getLogger(__name__)
 logger.setLevel(lg.WARNING)

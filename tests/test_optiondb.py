@@ -1,7 +1,7 @@
 import logging as lg
 import unittest
 
-from derivativedb import optiondb
+from zsfetch.derivativedb import optiondb as optiondb
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)

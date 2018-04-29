@@ -1,5 +1,6 @@
-*.pyc
+syntax: glob
 
+.gitignore
 .installed.cfg
 bin
 develop-eggs
