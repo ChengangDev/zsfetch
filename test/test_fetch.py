@@ -4,7 +4,7 @@ from optionsites import fetch
 
 class MyTestCase(unittest.TestCase):
     def test_something(self):
-        fetch.Fetch('', '')
+        fetch.FetchOption()
         self.assertEqual(True, True)
 
         

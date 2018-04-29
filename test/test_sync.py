@@ -1,6 +1,7 @@
-import unittest
-from cache import dboption
 import logging as lg
+import unittest
+
+from db import dboption
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
