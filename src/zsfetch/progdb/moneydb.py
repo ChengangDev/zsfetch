@@ -30,6 +30,7 @@ class MoneyDB:
     def __init__(self, dbname='money'):
         if dbname == '':
             dbname = 'money'
+        logger.info("using db:{}".format(dbname))
         self._client = pymongo.MongoClient()
         self._db = self._client[dbname]
         self._coll_dayline = self._db['ohlc']                 # from sse
@@ -76,7 +77,7 @@ class MoneyDB:
         if bool(within):
             filter[COL_MILLISECONDS] = within
         logger.debug("filter:{}".format(filter))
-        res = list(self._coll_dayline.find(filter))
+        res = list(self._coll_share.find(filter))
         logger.debug("share count:{}".format(len(res)))
         share = pd.DataFrame(res)
         return share

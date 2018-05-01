@@ -94,7 +94,6 @@ class MoneySync:
             i += 1
 
 
-
 def sync_today():
     opsync = OptionSync()
     daily_summary = opsync.sync_summary()
@@ -126,7 +125,7 @@ def sync_today():
 
 if __name__ == "__main__":
     print("start sync...")
-    infoFormatter = "%(asctime)s:%(filename)s: -- %(message)s"
+    infoFormatter = "%(asctime)s:%(levelname)s:%(filename)s: -- %(message)s"
     lg.basicConfig(level=lg.INFO, format=infoFormatter)
     mosync = MoneySync()
-    mosync.sync_money_share('2013-01-01')
+    mosync.sync_money_share('2018-04-11')

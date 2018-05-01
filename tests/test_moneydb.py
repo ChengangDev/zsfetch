@@ -1,0 +1,33 @@
+import logging as lg
+import unittest
+from zsfetch.progdb import moneydb
+from zsfetch.moneysites import sse
+from zsfetch.util import isodate_to_milliseconds
+
+dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
+lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
+moneydb.logger.setLevel(lg.DEBUG)
+
+# using test db
+_modb = moneydb.MoneyDB('test_sync_money')
+
+
+class MyTestCase(unittest.TestCase):
+    def test_get_ohlc(self):
+        daylines = _modb.get_ohlc('10001284')
+        lg.info("\n{}".format(daylines.head(1)))
+        self.assertEqual(True, True)
+
+    def test_get_share(self):
+        share = _modb.get_share('', isodate_to_milliseconds('2018-04-27'),
+                                isodate_to_milliseconds('2018-04-27'))
+        lg.info("local daily summary:\n{}".format(share.head(1)))
+        online = sse.get_money_fund_share('2018-04-27')
+        lg.info("online daily summary:\n{}".format(online.head(1)))
+        self.assertEqual(len(share.index), len(online.index))
+        self.assertEqual(share.iloc[0][moneydb.COL_TRADE_DATE],
+                         online.iloc[0]['STAT_DATE'])
+
+
+if __name__ == '__main__':
+    unittest.main()

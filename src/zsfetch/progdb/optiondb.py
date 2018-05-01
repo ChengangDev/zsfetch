@@ -38,6 +38,7 @@ class OptionDB:
     def __init__(self, dbname='option'):
         if dbname == '':
             dbname = 'option'
+        logger.info("using db:{}".format(dbname))
         self._client = pymongo.MongoClient()
         self._db = self._client[dbname]
         self._coll_dayline = self._db['ohlc']                 # from sina

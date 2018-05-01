@@ -8,7 +8,7 @@ lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
 optiondb.logger.setLevel(lg.DEBUG)
 
 # using test db
-_opdb = optiondb.OptionDB(__name__)
+_opdb = optiondb.OptionDB('test_sync_option')
 
 
 class MyTestCase(unittest.TestCase):
