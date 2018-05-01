@@ -1,5 +1,4 @@
 import pymongo
-import datetime
 import logging as lg
 import pandas as pd
 from zsfetch.optionsites import sina
@@ -32,22 +31,15 @@ ohlc_columns = [
 ] + sina.ohlc_columns
 
 
-def isodate_to_milliseconds(isodate='2000-01-01'):
-    if isodate.index('-') != 4:
-        raise Exception("Wrong iso date format:{}".format(isodate))
-    epoch = datetime.datetime.utcfromtimestamp(0)
-    d = datetime.datetime.strptime(isodate, '%Y-%m-%d')
-    ms = (d - epoch).total_seconds() * 1000
-    return int(ms)
-
-
 class OptionDB:
     '''
 
     '''
-    def __init__(self):
+    def __init__(self, dbname='option'):
+        if dbname == '':
+            dbname = 'option'
         self._client = pymongo.MongoClient()
-        self._db = self._client['option']
+        self._db = self._client[dbname]
         self._coll_dayline = self._db['ohlc']                 # from sina
         self._coll_daily_summary = self._db['daily_summary']  # from sse
         self._coll_greeks = self._db['greeks']                # from sse
@@ -106,9 +98,11 @@ class OptionDB:
         :return:
         '''
         res = list(self._coll_daily_summary.find().sort(COL_TRADE_DATE, pymongo.DESCENDING).limit(1))
-        recent_date = res[0][COL_TRADE_DATE]
-        logger.debug("recent trading date:{}".format(recent_date))
-        filter = {COL_TRADE_DATE: recent_date}
+        filter = {COL_TRADE_DATE: '-1'}
+        if len(res) == 1:
+            recent_date = res[0][COL_TRADE_DATE]
+            logger.debug("recent trading date:{}".format(recent_date))
+            filter = {COL_TRADE_DATE: recent_date}
         res = list(self._coll_daily_summary.find(filter))
         logger.debug("count:{}".format(len(res)))
         summary = pd.DataFrame(res)

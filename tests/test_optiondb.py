@@ -1,13 +1,14 @@
 import logging as lg
 import unittest
-from zsfetch.derivativedb import optiondb
+from zsfetch.progdb import optiondb
 from zsfetch.optionsites import sse
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
 optiondb.logger.setLevel(lg.DEBUG)
 
-_opdb = optiondb.OptionDB()
+# using test db
+_opdb = optiondb.OptionDB(__name__)
 
 
 class MyTestCase(unittest.TestCase):
