@@ -22,7 +22,7 @@ class FetchOption:
         #     logger.info("hit cache")
         #     return cached
 
-        fresh = sina.get_trading_option_history_ohlc(option_index)
+        fresh = sina.get_option_history_ohlc(option_index)
         # if l
 
     def get_trading_days(self, option_index):

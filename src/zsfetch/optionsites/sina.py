@@ -184,10 +184,10 @@ def get_trading_option_list(asset_code, year_month, retry=3, pause=1):
     return df
 
 
-def get_trading_option_history_ohlc(option_index, retry=3, pause=1):
+def get_option_history_ohlc(option_index, retry=3, pause=1):
     """
 
-    :param option_index: e.g. '10001209'  from get_trading_option_list()
+    :param option_index: e.g. '10000001'  from get_trading_option_list()
     :param retry:
     :param pause:
     :return: DataFrame(columns=OHLC_columns)

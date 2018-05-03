@@ -6,16 +6,17 @@ from zsfetch import sync
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
 sync.logger.setLevel(lg.DEBUG)
-sync._opdb = optiondb.OptionDB(__name__)
+
+_opsync = sync.OptionSync(__name__)
 
 
 class MyTestCase(unittest.TestCase):
     def test_sync_today(self):
-        sync.sync_today()
+        # _opsync.sync_today()
         self.assertEqual(True, True)
 
-    def test_sync_greeks(self):
-        sync.sync_greeks()
+    def test_sync_all_time(self):
+        _opsync.sync_all_time(False)
         self.assertEqual(True, True)
 
 

@@ -24,7 +24,7 @@ class MyTestCase(unittest.TestCase):
         df = sina.get_trading_option_list('510050', months[0])
 
     def test_get_trading_option_history_ohlc(self):
-        ohlc = sina.get_trading_option_history_ohlc('10001303')
+        ohlc = sina.get_option_history_ohlc('10001303')
         self.assertEqual(len(ohlc.columns), len(sina.ohlc_columns))
         logging.info("\n{}".format(ohlc.head(2)))
         self.assertGreater(len(ohlc.index), 0)

@@ -4,9 +4,9 @@ from zsfetch.progdb import moneydb
 from zsfetch import sync
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
-lg.basicConfig(level=lg.INFO, format=dbgFormatter)
-sync.logger.setLevel(lg.INFO)
-moneydb.logger.setLevel(lg.INFO)
+lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
+sync.logger.setLevel(lg.DEBUG)
+moneydb.logger.setLevel(lg.DEBUG)
 
 _mosync = sync.MoneySync(__name__)
 

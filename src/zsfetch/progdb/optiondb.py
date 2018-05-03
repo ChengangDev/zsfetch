@@ -143,7 +143,7 @@ class OptionDB:
         '''
         filter = {}
         if len(option_index) == 0 or option_index is None:
-            raise Exception("option_index can not be empty")
+            pass  # can be empty
         elif isinstance(option_index, list):
             filter[COL_OPTION_INDEX] = {"$in": option_index}
         elif isinstance(option_index, str) or isinstance(option_index, int):

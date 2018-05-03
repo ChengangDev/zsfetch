@@ -31,21 +31,83 @@ class OptionSync:
         logger.debug("\n{}".format(greeks.head(1)))
         logger.info("greeks sync done.")
 
-    def sync_greeks(self, fr_date='2018-01-01', to_date='', wait=1):
+    def sync_greeks(self, fr_date='2015-02-09', to_date='', force_update=False, wait=1):
+        '''
+        must be called before sync_ohlc([], False)
+        :param fr_date:
+        :param to_date:
+        :param force_update:
+        :param wait:
+        :return:
+        '''
         end = datetime.today()
         if to_date != '':
             end = datetime.strptime(to_date, '%Y-%m-%d')
         start = datetime.strptime(fr_date, '%Y-%m-%d')
         delta = timedelta(days=1)
+        count = int((end - start) / delta) + 1
+        i = 1
         while start <= end:
             trade_date = start.isoformat()[:10]
-            logger.info("{}/{}:".format(trade_date, end.isoformat()[:10]))
-            self._sync_greeks(trade_date)
+            logger.info("({}/{}){}:".format(i, count, trade_date))
+            if start.weekday() < 5:  # need trade calendar
+                milliseconds = isodate_to_milliseconds(trade_date)
+                cached_greeks = self._opdb.get_greeks(option_index='', fr_ms=milliseconds, to_ms=milliseconds)
+                if len(cached_greeks.index) == 0 or force_update:
+                    self._sync_greeks(trade_date)
+                    time.sleep(wait)
+                else:
+                    logger.info("{} greeks already exists and not force update.".format(trade_date))
+
+            else:
+                logger.info("skip weekend:{} {}".format(trade_date, start.strftime("%A")))
+
             start += delta
+            i += 1
+
+    def _sync_ohlc(self, option_index):
+        option_index = str(option_index)
+        logger.info("{}:ohlc is syncing...".format(option_index))
+        ohlc = optionsites.sina.get_option_history_ohlc(option_index)
+        ohlc[optiondb.COL_OPTION_INDEX] = [option_index for _ in ohlc.index]
+        ohlc[optiondb.COL_TRADE_DATE] = ohlc['d']
+        ohlc[optiondb.COL_MILLISECONDS] = [isodate_to_milliseconds(
+            ohlc.loc[i][optiondb.COL_TRADE_DATE]) for i in ohlc.index]
+        logger.debug("\n{}".format(ohlc.head(1)))
+        self._opdb.upsert_ohlc(ohlc)
+
+    def sync_ohlc(self, option_index_list, force_update=False, wait=1):
+        '''
+
+        :param option_index_list:
+        :param force_update:  if False, must be called after sync_greeks()
+        :param wait
+        :return:
+        '''
+        if not isinstance(option_index_list, list):
+            raise Exception("option_index_list must be a list:{}".format(option_index_list))
+        for i, option_index in enumerate(option_index_list):
+            logger.info("({}/{}){} ohlc is syncing...".format(i+1, len(option_index_list), option_index))
+            cached_ohlc = self._opdb.get_ohlc(option_index)
+            cached_greeks = self._opdb.get_greeks(option_index)  # using greeks num to check up-to-date
+            if not force_update:
+                if len(cached_ohlc.index) >= len(cached_greeks.index):
+                    logger.info("{} ohlc already exists:{}>={} and skip.".format(
+                        option_index, len(cached_ohlc.index), len(cached_greeks.index)))
+                    continue
+            else:
+                if len(cached_ohlc.index) == len(cached_greeks.index):
+                    logger.info("{} ohlc already exists:{}, but force update.".format(
+                        option_index, len(cached_ohlc.index)))
+            self._sync_ohlc(option_index)
             time.sleep(wait)
 
     def sync_summary(self):
-        logger.info("Get daily summary...")
+        '''
+        update when new, adjust, delete contracts
+        :return:
+        '''
+        logger.info("sync daily summary...")
         daily_summary = optionsites.sse.get_trading_option_daily_summary()
         daily_summary[optiondb.COL_OPTION_INDEX] = daily_summary['SECURITY_ID']
         daily_summary[optiondb.COL_OPTION_CODE] = daily_summary['CONTRACT_ID']
@@ -53,6 +115,31 @@ class OptionSync:
         self._opdb.upsert_daily_summary(daily_summary)
         logger.debug("\n{}".format(daily_summary.head(1)))
         return daily_summary
+
+    def sync_all_time(self, force_update=False):
+        logger.info("syncing all time...")
+        self.sync_greeks(force_update=force_update)
+        option_index_list = [str(i) for i in range(10000001, 10001400)]
+        logger.info(option_index_list)
+        self.sync_ohlc(option_index_list, force_update)
+
+    def sync_today(self, force_update=False):
+        daily_summary = self.sync_summary()
+        # count of trading options
+        count = len(daily_summary.index)
+
+        trade_date = datetime.today().isoformat()[:10]
+        start = datetime.today() - timedelta(days=14)
+        start_date = start.isoformat()[:10]
+        logger.info("syncing greeks from {} to {}...".format(start_date, trade_date))
+        self.sync_greeks(fr_date=start_date, force_update=force_update)
+        logger.info("syncing ohlc...")
+        option_index_list = []
+        for _, row in daily_summary.iterrows():
+            option_index_list.append(row[optiondb.COL_OPTION_INDEX])
+        self.sync_ohlc(option_index_list, force_update)
+
+        logger.info("sync today is done.")
 
 
 class MoneySync:
@@ -94,38 +181,12 @@ class MoneySync:
             i += 1
 
 
-def sync_today():
-    opsync = OptionSync()
-    daily_summary = opsync.sync_summary()
-    # count of trading options
-    count = len(daily_summary.index)
-    trade_date = daily_summary.iloc[0][optiondb.COL_TRADE_DATE]
-    milliseconds = isodate_to_milliseconds(trade_date)
-    logger.info("sync data of {}".format(trade_date))
-    # cache_greeks = _opdb.get_greeks(daily_summary[optiondb.COL_OPTION_INDEX].tolist(), milliseconds, milliseconds)
-    # if len(cache_greeks.index) == count:
-    #     logger.info("greeks already sync.")
-    # else:
-    #     _sync_greeks(trade_date)
-    logger.info("ohlc is syncing...")
-    for i, row in daily_summary.iterrows():
-        option_index = row[optiondb.COL_OPTION_INDEX]
-        logger.info("{} is syncing...".format(option_index))
-        ohlc = optionsites.sina.get_trading_option_history_ohlc(option_index)
-        time.sleep(3)
-        ohlc[optiondb.COL_OPTION_INDEX] = [option_index for _ in ohlc.index]
-        ohlc[optiondb.COL_TRADE_DATE] = ohlc['d']
-        ohlc[optiondb.COL_MILLISECONDS] = [isodate_to_milliseconds(
-            ohlc.loc[i][optiondb.COL_TRADE_DATE]) for i in ohlc.index]
-
-        logger.debug("\n{}".format(ohlc.head(1)))
-        logger.info("({}/{}){} is done.".format(i + 1, count, option_index))
-    logger.info("ohlc is done.")
-
-
 if __name__ == "__main__":
-    print("start sync...")
     infoFormatter = "%(asctime)s:%(levelname)s:%(filename)s: -- %(message)s"
-    lg.basicConfig(level=lg.INFO, format=infoFormatter)
+    lg.basicConfig(level=lg.DEBUG, format=infoFormatter)
+    logger.info("start sync...be careful of proxy...")
+    opsync = OptionSync()
     mosync = MoneySync()
-    mosync.sync_money_share('2018-04-11')
+    # mosync.sync_money_share('2018-04-11')
+    # opsync.sync_today()
+    opsync.sync_all_time()
