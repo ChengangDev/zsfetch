@@ -2,6 +2,8 @@ import pymongo
 import logging as lg
 import pandas as pd
 from zsfetch.moneysites import sse
+from zsfetch.moneysites import qq
+from zsfetch.moneysites import eastmoney
 
 logger = lg.getLogger(__name__)
 logger.setLevel(lg.WARNING)
@@ -9,6 +11,10 @@ logger.setLevel(lg.WARNING)
 COL_MONEY_FUND_INDEX = "money_fund_index"
 COL_TRADE_DATE = "trade_date"
 COL_MILLISECONDS = "milliseconds"
+
+COL_GCR_INDEX = "gcr_index"  # gcr
+COL_GCR_DURATION = "gcr_duration"
+COL_GCR_AMOUNT = "gcr_amount"  # 成交额 元
 
 ohlc_columns = [
     COL_MONEY_FUND_INDEX,
@@ -21,6 +27,37 @@ share_columns = [
     COL_TRADE_DATE,
     COL_MILLISECONDS
 ] + sse.share_columns
+
+hsg_flow_columns = [
+    COL_TRADE_DATE,
+    COL_MILLISECONDS
+] + eastmoney.hsg_flow_columns
+
+gcr_ohlc_columns = [
+    COL_GCR_INDEX,
+    COL_TRADE_DATE,
+    COL_MILLISECONDS,
+    COL_GCR_DURATION,
+    COL_GCR_AMOUNT
+] + qq.gcr_ohlc_columns
+
+tracked_gcr = {
+    'sh204001': {COL_GCR_DURATION: 1, COL_GCR_AMOUNT: 1000},
+    'sh204002': {COL_GCR_DURATION: 2, COL_GCR_AMOUNT: 1000},
+    'sh204003': {COL_GCR_DURATION: 3, COL_GCR_AMOUNT: 1000},
+    'sh204004': {COL_GCR_DURATION: 4, COL_GCR_AMOUNT: 1000},
+    'sh204007': {COL_GCR_DURATION: 7, COL_GCR_AMOUNT: 1000},
+    'sh204014': {COL_GCR_DURATION: 14, COL_GCR_AMOUNT: 1000},
+    'sh204028': {COL_GCR_DURATION: 28, COL_GCR_AMOUNT: 1000},
+
+    'sz131810': {COL_GCR_DURATION: 1, COL_GCR_AMOUNT: 1000},
+    'sz131811': {COL_GCR_DURATION: 2, COL_GCR_AMOUNT: 1000},
+    'sz131800': {COL_GCR_DURATION: 3, COL_GCR_AMOUNT: 1000},
+    'sz131809': {COL_GCR_DURATION: 4, COL_GCR_AMOUNT: 1000},
+    'sz131801': {COL_GCR_DURATION: 7, COL_GCR_AMOUNT: 1000},
+    'sz131802': {COL_GCR_DURATION: 14, COL_GCR_AMOUNT: 1000},
+    'sz131803': {COL_GCR_DURATION: 28, COL_GCR_AMOUNT: 1000},
+}
 
 
 class MoneyDB:
@@ -35,6 +72,8 @@ class MoneyDB:
         self._db = self._client[dbname]
         self._coll_dayline = self._db['ohlc']                 # from sse
         self._coll_share = self._db['share']                  # from sse
+        self._coll_gcr_ohlc = self._db['gcr_ohlc']            # from qq
+        self._coll_hsg_flow = self._db['hsg_flow']
 
     def get_ohlc(self, fund_index, fr_ms=-1, to_ms=-1):
         filter = {}
@@ -94,4 +133,64 @@ class MoneyDB:
             val = {"$set": row.to_dict()}
             result = self._coll_share.update_many(filter, val, True)
             logger.debug("update:{}{}".format(filter, result))
+
+    def get_gcr_ohlc(self, gcr_index='', fr_ms=-1, to_ms=-1):
+        filter = {}
+        if len(gcr_index) == 0 or gcr_index is None:
+            pass  # can be empty
+        elif isinstance(gcr_index, list):
+            filter[COL_GCR_INDEX] = {"$in": gcr_index}
+        elif isinstance(gcr_index, str):
+            filter[COL_GCR_INDEX] = gcr_index
+        else:
+            raise Exception("Wrong dtype of gcr_index:{}".format(gcr_index))
+        within = {}
+        if fr_ms != -1:
+            within['$gte'] = fr_ms
+        if to_ms != -1:
+            within['$lte'] = to_ms
+        if bool(within):
+            filter[COL_MILLISECONDS] = within
+        logger.debug("filter:{}".format(filter))
+        res = list(self._coll_gcr_ohlc.find(filter))
+        logger.debug("gcr ohlc count:{}".format(len(res)))
+        ohlc = pd.DataFrame(res)
+        return ohlc
+
+    def upsert_gcr_ohlc(self, gcr_ohlc):
+
+        for _, row in gcr_ohlc.iterrows():
+            gcr_index = row[COL_GCR_INDEX]
+            milliseconds = row[COL_MILLISECONDS]
+            if gcr_index is None or milliseconds is None:
+                logger.error("Wrong format, no index:{}".format(row))
+                continue
+            filter = {COL_GCR_INDEX: gcr_index, COL_MILLISECONDS: milliseconds}
+            val = {"$set": row.to_dict()}
+            result = self._coll_gcr_ohlc.update_many(filter, val, True)
+            logger.debug("update gcr ohlc:{}{}".format(filter, result))
+
+    def get_hsg_flow(self, fr_ms=-1, to_ms=-1):
+        filter = {}
+        within = {}
+        if fr_ms != -1:
+            within['$gte'] = fr_ms
+        if to_ms != -1:
+            within['$lte'] = to_ms
+        if bool(within):
+            filter[COL_MILLISECONDS] = within
+        logger.debug("hsg flow filter:{}".format(filter))
+        res = list(self._coll_hsg_flow.find(filter))
+        logger.debug("hsg flow count:{}".format(len(res)))
+        flow = pd.DataFrame(res)
+        return flow
+
+    def upsert_hsg_flow(self, hsg_flow):
+
+        for _, row in hsg_flow.iterrows():
+            milliseconds = row[COL_MILLISECONDS]
+            filter = {COL_MILLISECONDS: milliseconds}
+            val = {"$set": row.to_dict()}
+            result = self._coll_hsg_flow.update_many(filter, val, True)
+            logger.debug("update hsg flow:{}{}".format(filter, result))
 

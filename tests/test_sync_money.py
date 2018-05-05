@@ -13,8 +13,13 @@ _mosync = sync.MoneySync(__name__)
 
 class MyTestCase(unittest.TestCase):
     def test_sync_share(self):
-        _mosync.sync_money_share(fr_date='2018-04-21')
+        _mosync.sync_money_share(fr_date='2018-04-29')
         self.assertEqual(True, True)
+
+    def test_sync_gcr_ohlc(self):
+        _mosync.sync_gcr_ohlc()
+        self.assertEqual(True, True)
+
 
 
 if __name__ == '__main__':

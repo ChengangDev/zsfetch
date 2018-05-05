@@ -14,7 +14,15 @@ logger = lg.getLogger(__name__)
 logger.setLevel(lg.INFO)
 
 
-class OptionSync:
+class Sync:
+    def sync_today(self, force_update=False, missed_days=14):
+        pass
+
+    def sync_all_time(self, force_update=False):
+        pass
+
+
+class OptionSync(Sync):
     def __init__(self, dbname='option'):
         self._opdb = optiondb.OptionDB(dbname)
 
@@ -58,7 +66,6 @@ class OptionSync:
                     time.sleep(wait)
                 else:
                     logger.info("{} greeks already exists and not force update.".format(trade_date))
-
             else:
                 logger.info("skip weekend:{} {}".format(trade_date, start.strftime("%A")))
 
@@ -123,13 +130,13 @@ class OptionSync:
         logger.info(option_index_list)
         self.sync_ohlc(option_index_list, force_update)
 
-    def sync_today(self, force_update=False):
+    def sync_today(self, force_update=False, missed_days=14):
         daily_summary = self.sync_summary()
         # count of trading options
         count = len(daily_summary.index)
 
         trade_date = datetime.today().isoformat()[:10]
-        start = datetime.today() - timedelta(days=14)
+        start = datetime.today() - timedelta(days=missed_days)
         start_date = start.isoformat()[:10]
         logger.info("syncing greeks from {} to {}...".format(start_date, trade_date))
         self.sync_greeks(fr_date=start_date, force_update=force_update)
@@ -138,11 +145,10 @@ class OptionSync:
         for _, row in daily_summary.iterrows():
             option_index_list.append(row[optiondb.COL_OPTION_INDEX])
         self.sync_ohlc(option_index_list, force_update)
-
         logger.info("sync today is done.")
 
 
-class MoneySync:
+class MoneySync(Sync):
     def __init__(self, dbname='money'):
         self._modb = moneydb.MoneyDB(dbname=dbname)
 
@@ -161,7 +167,7 @@ class MoneySync:
         logger.debug("\n{}".format(share.head(1)))
         logger.info("{}:share sync is done:{}".format(trade_date, len(share.index)))
 
-    def sync_money_share(self, fr_date='2018-01-01', to_date='', wait=1):
+    def sync_money_share(self, fr_date='2018-01-01', to_date='', force_update=False, wait=1):
         end = datetime.today()
         if to_date != '':
             end = datetime.strptime(to_date, '%Y-%m-%d')
@@ -173,20 +179,85 @@ class MoneySync:
             trade_date = start.isoformat()[:10]
             logger.info("{}({}/{}):".format(trade_date, i, count))
             if start.weekday() < 5:
-                self._sync_money_share(trade_date)
-                time.sleep(wait)
+                milliseconds = isodate_to_milliseconds(trade_date)
+                cached_share = self._modb.get_share(fund_index='', fr_ms=milliseconds, to_ms=milliseconds)
+                if len(cached_share.index) == 0 or force_update:
+                    self._sync_money_share(trade_date)
+                    time.sleep(wait)
+                else:
+                    logger.info("{} share already exists and not force update.".format(trade_date))
             else:
                 logger.info("skip weekend:{}".format(start.strftime("%A")))
             start += delta
             i += 1
+
+    def sync_gcr_ohlc(self, gcr_index='sh204001', count_of_recent_trading_days=14):
+        logger.info("syncing gcr ohlc {}:days:{}".format(gcr_index, count_of_recent_trading_days))
+        if gcr_index not in moneydb.tracked_gcr:
+            logger.error("gcr {} is not tracked.".format(gcr_index))
+            return
+        duration = moneydb.tracked_gcr[gcr_index][moneydb.COL_GCR_DURATION]
+        amt_multiple = moneydb.tracked_gcr[gcr_index][moneydb.COL_GCR_AMOUNT]
+        ohlc = moneysites.qq.get_gcr_ohlc(gcr_index=gcr_index,
+                                          count_of_recent_trading_days=count_of_recent_trading_days)
+        ohlc[moneydb.COL_GCR_INDEX] = [gcr_index for _ in ohlc.index]
+        ohlc[moneydb.COL_GCR_DURATION] = [duration for _ in ohlc.index]
+        ohlc[moneydb.COL_GCR_AMOUNT] = [amt_multiple * ohlc.loc[i]['v'] for i in ohlc.index]
+        ohlc[moneydb.COL_TRADE_DATE] = ohlc['d']
+        ohlc[moneydb.COL_MILLISECONDS] = [isodate_to_milliseconds(
+            ohlc.loc[i][moneydb.COL_TRADE_DATE]) for i in ohlc.index]
+        logger.debug("grc_ohlc:\n{}".format(ohlc.tail(1)))
+        self._modb.upsert_gcr_ohlc(ohlc)
+        logger.info("{} gcr ohlc sync is done:{}".format(gcr_index, len(ohlc.index)))
+
+    def sync_hsg_flow(self, fr_date='2014-11-17', to_date=''):
+        logger.info("syncing hsg flow {} to {}".format(fr_date, to_date))
+        flow = moneysites.eastmoney.get_hsg_flow(fr_date, to_date)
+        flow[moneydb.COL_TRADE_DATE] = [flow.loc[i]['DateTime'][:10] for i in flow.index]
+        flow[moneydb.COL_MILLISECONDS] = [isodate_to_milliseconds(
+            flow.loc[i][moneydb.COL_TRADE_DATE]) for i in flow.index]
+        logger.debug("hsg flow:\n{}".format(flow.tail(1)))
+        self._modb.upsert_hsg_flow(flow)
+        logger.info("hsg flow sync is done:{}: {} to {}".format(len(flow.index), fr_date, to_date))
+
+    def sync_all_time(self, force_update=False):
+        fr_date = '2013-01-28'
+        logger.info("syncing hsg flow all time:")
+        self.sync_hsg_flow()
+
+        logger.info("syncing money all time:{}".format(fr_date))
+        self.sync_money_share(fr_date=fr_date, force_update=force_update)
+        start = datetime.strptime(fr_date, '%Y-%m-%d')
+        delta = timedelta(days=1)
+        count = int((datetime.today() - start) / delta / 7 * 5)
+        logger.info("syncing gcr all time:{}".format(count))
+        for gcr_index in moneydb.tracked_gcr:
+            self.sync_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=count)
+
+    def sync_today(self, force_update=False, missed_days=14):
+        '''
+        清算后
+        :param force_update:
+        :param missed_days:
+        :return:
+        '''
+        trade_date = datetime.today().isoformat()[:10]
+        start = datetime.today() - timedelta(days=missed_days)
+        start_date = start.isoformat()[:10]
+        logger.info("syncing money share today from {} to {}...".format(start_date, trade_date))
+        self.sync_money_share(fr_date=start_date, force_update=force_update)
+        for gcr_index in moneydb.tracked_gcr:
+            # logger.info("syncing gcr today:{}".format(gcr_index))
+            self.sync_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=missed_days)
+        logger.info("sync today is done.")
 
 
 if __name__ == "__main__":
     infoFormatter = "%(asctime)s:%(levelname)s:%(filename)s: -- %(message)s"
     lg.basicConfig(level=lg.DEBUG, format=infoFormatter)
     logger.info("start sync...be careful of proxy...")
-    opsync = OptionSync()
-    mosync = MoneySync()
-    # mosync.sync_money_share('2018-04-11')
-    # opsync.sync_today()
-    opsync.sync_all_time()
+    sync_list = [MoneySync(), OptionSync()]
+    OptionSync().sync_all_time()
+    for nc in sync_list:
+        nc.sync_today(missed_days=1)
+        # nc.sync_all_time()
