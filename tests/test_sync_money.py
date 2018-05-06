@@ -17,10 +17,13 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_sync_gcr_ohlc(self):
-        _mosync.sync_gcr_ohlc()
+        for gcr_index in moneydb.tracked_gcr:
+            _mosync.sync_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=222)
         self.assertEqual(True, True)
 
-
+    def test_sync_today(self):
+        _mosync.sync_today(missed_days=14)
+        self.assertEqual(True, True)
 
 if __name__ == '__main__':
     unittest.main()

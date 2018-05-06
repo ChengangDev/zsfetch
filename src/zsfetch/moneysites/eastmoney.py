@@ -1,11 +1,9 @@
 # -*- coding: utf-8 -*-
 
-import datetime
 import logging
 import time
 import pandas as pd
 import requests
-import json
 from zsfetch.util import check_isodatestr_or_raise
 
 logger = logging.getLogger(__name__)

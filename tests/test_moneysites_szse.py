@@ -1,11 +1,10 @@
 import unittest
 import logging as lg
-from zsfetch.moneysites import qq
-from zsfetch.progdb import moneydb
+from zsfetch.moneysites import szse
 
 dbgFormatter = "%(levelname)s:%(filename)s:%(lineno)s:%(funcName)s() -- %(message)s"
 lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
-qq.logger.setLevel(lg.DEBUG)
+szse.logger.setLevel(lg.DEBUG)
 
 
 class MyTestCase(unittest.TestCase):
@@ -19,16 +18,11 @@ class MyTestCase(unittest.TestCase):
                 lg.error("'{}' does not exist in '{}'".format(c, df_col))
                 self.assertEqual(True, False)
 
-    def test_get_gcr_ohlc(self):
-        df = qq.get_gcr_ohlc()
-        self.assertEqual(len(df.index), 360)
-        self._check_df_columns(df.columns, qq.gcr_ohlc_columns)
-        lg.info("\n{}".format(df.tail(5)))
-
-        for gcr_index in moneydb.tracked_gcr:
-            df = qq.get_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=30)
-            lg.debug("{}\n{}".format(gcr_index, df))
-
+    def test_get_money_fund_share(self):
+        df = szse.get_money_fund_share()
+        self.assertEqual(len(df.index), 3)
+        self._check_df_columns(df.columns, szse.share_columns)
+        lg.info("\n{}".format(df.head(3)))
 
 if __name__ == '__main__':
     unittest.main()

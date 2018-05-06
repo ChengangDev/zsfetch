@@ -8,6 +8,7 @@
       <w>daylines</w>
       <w>dbname</w>
       <w>derivativedb</w>
+      <w>eastmoney</w>
       <w>finfuturedb</w>
       <w>finfuturesites</w>
       <w>gitignore</w>
@@ -15,15 +16,19 @@
       <w>isodatestr</w>
       <w>levelname</w>
       <w>lineno</w>
+      <w>marketcalendar</w>
       <w>minline</w>
       <w>moneydb</w>
+      <w>moneysites</w>
       <w>ohlc</w>
       <w>opdb</w>
       <w>optiondb</w>
       <w>optionsites</w>
+      <w>progdb</w>
       <w>pymongo</w>
       <w>referer</w>
       <w>sina</w>
+      <w>szse</w>
       <w>timesave</w>
       <w>upsert</w>
       <w>yyyy</w>

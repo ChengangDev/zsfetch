@@ -41,7 +41,7 @@ class OptionDB:
         logger.info("using db:{}".format(dbname))
         self._client = pymongo.MongoClient()
         self._db = self._client[dbname]
-        self._coll_dayline = self._db['ohlc']                 # from sina
+        self._coll_ohlc = self._db['ohlc']                 # from sina
         self._coll_daily_summary = self._db['daily_summary']  # from sse
         self._coll_greeks = self._db['greeks']                # from sse
         # self._coll_contract = self._db['contract']
@@ -71,7 +71,7 @@ class OptionDB:
         if bool(within):
             filter[COL_MILLISECONDS] = within
         logger.debug("filter:{}".format(filter))
-        res = list(self._coll_dayline.find(filter))
+        res = list(self._coll_ohlc.find(filter))
         logger.debug("results:{}".format(len(res)))
         ohlc = pd.DataFrame(res)
         return ohlc
@@ -82,7 +82,7 @@ class OptionDB:
         :param ohlc: DataFrame
         :return:
         '''
-        for _, row in ohlc.iterrows():
+        for i, row in ohlc.iterrows():
             option_index = row[COL_OPTION_INDEX]
             milliseconds = row[COL_MILLISECONDS]
             if option_index is None or milliseconds is None:
@@ -90,8 +90,9 @@ class OptionDB:
                 continue
             filter = {COL_OPTION_INDEX: option_index, COL_MILLISECONDS: milliseconds}
             val = {"$set": row.to_dict()}
-            result = self._coll_dayline.update_many(filter, val, True)
-            logger.debug("update:{}{}".format(filter, result))
+            result = self._coll_ohlc.update_many(filter, val, True)
+            logger.debug("upsert ohlc:{}:{} matched:{} modified:{}"
+                         .format(i, filter, result.matched_count, result.modified_count))
 
     def get_daily_summary(self):
         '''
@@ -104,6 +105,8 @@ class OptionDB:
             recent_date = res[0][COL_TRADE_DATE]
             logger.debug("recent trading date:{}".format(recent_date))
             filter = {COL_TRADE_DATE: recent_date}
+        else:
+            logger.warning("this is an empty summary")
         res = list(self._coll_daily_summary.find(filter))
         logger.debug("count:{}".format(len(res)))
         summary = pd.DataFrame(res)
@@ -130,7 +133,7 @@ class OptionDB:
                 continue
             filter = {COL_OPTION_INDEX: option_index, COL_TRADE_DATE: trade_date}
             val = {"$set": row.to_dict()}
-            result = self._coll_greeks.update(filter, val, True)
+            result = self._coll_greeks.update_one(filter, val, True)
             logger.debug("update:{}{}".format(filter, result))
 
     def get_greeks(self, option_index, fr_ms=-1, to_ms=-1):

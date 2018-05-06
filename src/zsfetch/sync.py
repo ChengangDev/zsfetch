@@ -2,7 +2,6 @@
 import time
 from datetime import timedelta, datetime
 import logging as lg
-import pandas as pd
 from zsfetch import optionsites
 from zsfetch import moneysites
 from zsfetch.progdb import optiondb
@@ -80,7 +79,7 @@ class OptionSync(Sync):
         ohlc[optiondb.COL_TRADE_DATE] = ohlc['d']
         ohlc[optiondb.COL_MILLISECONDS] = [isodate_to_milliseconds(
             ohlc.loc[i][optiondb.COL_TRADE_DATE]) for i in ohlc.index]
-        logger.debug("\n{}".format(ohlc.head(1)))
+        logger.debug("online ohlc:{}\n{}".format(len(ohlc.index), ohlc.head(1)))
         self._opdb.upsert_ohlc(ohlc)
 
     def sync_ohlc(self, option_index_list, force_update=False, wait=1):
@@ -210,6 +209,25 @@ class MoneySync(Sync):
         self._modb.upsert_gcr_ohlc(ohlc)
         logger.info("{} gcr ohlc sync is done:{}".format(gcr_index, len(ohlc.index)))
 
+    def update_gcr_locked_amount(self, fr_date='2018-01-01', to_date=''):
+        end = datetime.today()
+        if to_date != '':
+            end = datetime.strptime(to_date, '%Y-%m-%d')
+        start = datetime.strptime(fr_date, '%Y-%m-%d')
+        delta = timedelta(days=1)
+        count = int((end - start) / delta) + 1
+        i = 1
+        while start <= end:
+            trade_date = start.isoformat()[:10]
+            logger.info("update gcr locked amount: {}({}/{}):".format(trade_date, i, count))
+            if start.weekday() < 5:
+                milliseconds = isodate_to_milliseconds(trade_date)
+                self._modb.update_gcr_locked_amount(milliseconds)
+            else:
+                logger.info("skip weekend:{}".format(start.strftime("%A")))
+            start += delta
+            i += 1
+
     def sync_hsg_flow(self, fr_date='2014-11-17', to_date=''):
         logger.info("syncing hsg flow {} to {}".format(fr_date, to_date))
         flow = moneysites.eastmoney.get_hsg_flow(fr_date, to_date)
@@ -234,6 +252,10 @@ class MoneySync(Sync):
         for gcr_index in moneydb.tracked_gcr:
             self.sync_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=count)
 
+        logger.info("update gcr locked amount all time:".format(count))
+        self.update_gcr_locked_amount(fr_date=fr_date)
+        logger.info("syncing is done.")
+
     def sync_today(self, force_update=False, missed_days=14):
         '''
         清算后
@@ -249,6 +271,17 @@ class MoneySync(Sync):
         for gcr_index in moneydb.tracked_gcr:
             # logger.info("syncing gcr today:{}".format(gcr_index))
             self.sync_gcr_ohlc(gcr_index=gcr_index, count_of_recent_trading_days=missed_days)
+        logger.info("update gcr locked amount from: {}".format(start_date))
+        self.update_gcr_locked_amount(fr_date=start_date)
+
+        logger.info("{}:ugly szse share is syncing...".format(trade_date))
+        share = moneysites.szse.get_money_fund_share(trade_date)
+        share[moneydb.COL_MONEY_FUND_INDEX] = share['SEC_CODE']
+        share[moneydb.COL_TRADE_DATE] = share['STAT_DATE']
+        share[moneydb.COL_MILLISECONDS] = [isodate_to_milliseconds(
+            share.loc[i][moneydb.COL_TRADE_DATE]) for i in share.index]
+        self._modb.upsert_share(share)
+
         logger.info("sync today is done.")
 
 
@@ -257,7 +290,6 @@ if __name__ == "__main__":
     lg.basicConfig(level=lg.DEBUG, format=infoFormatter)
     logger.info("start sync...be careful of proxy...")
     sync_list = [MoneySync(), OptionSync()]
-    OptionSync().sync_all_time()
     for nc in sync_list:
-        nc.sync_today(missed_days=1)
+        nc.sync_today(missed_days=14)
         # nc.sync_all_time()

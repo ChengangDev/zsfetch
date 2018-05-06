@@ -8,6 +8,7 @@ lg.basicConfig(level=lg.DEBUG, format=dbgFormatter)
 sync.logger.setLevel(lg.DEBUG)
 
 _opsync = sync.OptionSync(__name__)
+_mosync = sync.MoneySync(__name__)
 
 
 class MyTestCase(unittest.TestCase):
@@ -16,7 +17,7 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(True, True)
 
     def test_sync_all_time(self):
-        _opsync.sync_all_time(False)
+        # _opsync.sync_all_time(False)
         self.assertEqual(True, True)
 
 

@@ -1,9 +1,27 @@
 
 from datetime import datetime
 import logging as lg
+import pandas as pd
 
 logger = lg.getLogger(__name__)
 logger.setLevel(lg.WARNING)
+
+calendar_columns = [
+    "exchangeCD",
+    "calendarDate",
+    "isOpen",
+    "prevTradeDate",
+    "isWeekEnd",
+    "isMonthEnd",
+    "isQuarterEnd",
+    "isYearEnd"
+]
+
+
+class Calendar:
+    def __init__(self, csv='marketcalendar.csv'):
+        self._cal = pd.DataFrame()
+        self._cal = pd.DataFrame.from_csv(path=csv)
 
 
 def isodate_to_milliseconds(isodate='2000-01-01'):

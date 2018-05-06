@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 
-import datetime
 import logging
 import time
 import pandas as pd
@@ -56,7 +55,7 @@ share_columns = [
     "SEC_CODE",
     "SEC_NAME",
     "STAT_DATE",
-    "TOT_VOL"
+    "TOT_VOL"             #亿份
 ]
 
 

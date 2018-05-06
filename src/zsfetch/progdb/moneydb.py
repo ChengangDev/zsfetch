@@ -15,6 +15,7 @@ COL_MILLISECONDS = "milliseconds"
 COL_GCR_INDEX = "gcr_index"  # gcr
 COL_GCR_DURATION = "gcr_duration"
 COL_GCR_AMOUNT = "gcr_amount"  # 成交额 元
+COL_GCR_LOCKED_AMOUNT = "gcr_locked_amount"  # 锁定的金额
 
 ohlc_columns = [
     COL_MONEY_FUND_INDEX,
@@ -49,6 +50,8 @@ tracked_gcr = {
     'sh204007': {COL_GCR_DURATION: 7, COL_GCR_AMOUNT: 1000},
     'sh204014': {COL_GCR_DURATION: 14, COL_GCR_AMOUNT: 1000},
     'sh204028': {COL_GCR_DURATION: 28, COL_GCR_AMOUNT: 1000},
+    'sh204091': {COL_GCR_DURATION: 91, COL_GCR_AMOUNT: 1000},
+    'sh204182': {COL_GCR_DURATION: 182, COL_GCR_AMOUNT: 1000},
 
     'sz131810': {COL_GCR_DURATION: 1, COL_GCR_AMOUNT: 1000},
     'sz131811': {COL_GCR_DURATION: 2, COL_GCR_AMOUNT: 1000},
@@ -57,7 +60,11 @@ tracked_gcr = {
     'sz131801': {COL_GCR_DURATION: 7, COL_GCR_AMOUNT: 1000},
     'sz131802': {COL_GCR_DURATION: 14, COL_GCR_AMOUNT: 1000},
     'sz131803': {COL_GCR_DURATION: 28, COL_GCR_AMOUNT: 1000},
+    'sz131805': {COL_GCR_DURATION: 91, COL_GCR_AMOUNT: 1000},
+    'sz131806': {COL_GCR_DURATION: 182, COL_GCR_AMOUNT: 1000}
 }
+
+_MAX_GCR_DURATION = max([tracked_gcr[gcr][COL_GCR_DURATION] for gcr in tracked_gcr])
 
 
 class MoneyDB:
@@ -169,6 +176,32 @@ class MoneyDB:
             val = {"$set": row.to_dict()}
             result = self._coll_gcr_ohlc.update_many(filter, val, True)
             logger.debug("update gcr ohlc:{}{}".format(filter, result))
+
+    def update_gcr_locked_amount(self, date_ms):
+        unit_ms = 24 * 3600 * 1000
+        for gcr_index in tracked_gcr:
+            locked_amount = 0
+            duration = tracked_gcr[gcr_index][COL_GCR_DURATION]
+            fr_ms = date_ms - unit_ms * (duration - 1)
+            to_ms = date_ms
+            filter = {
+                COL_MILLISECONDS: {
+                    '$gte': fr_ms,
+                    '$lte': to_ms
+                },
+                COL_GCR_INDEX: gcr_index,
+                COL_GCR_DURATION: duration
+            }
+            res = list(self._coll_gcr_ohlc.find(filter=filter))
+            logger.debug("gcr:{} duration:{} count:{} filter:{}".format(gcr_index, duration, len(res), filter))
+            for gcr in res:
+                locked_amount += int(gcr[COL_GCR_AMOUNT])
+
+            filter = {COL_MILLISECONDS: date_ms, COL_GCR_INDEX: gcr_index}
+            val = {"$set": {COL_GCR_LOCKED_AMOUNT: locked_amount}}
+            res = self._coll_gcr_ohlc.update_one(filter, val)
+            logger.debug("update gcr ohlc:filter:{} val:{} matched:{} modified:{}".format(
+                filter, val, res.modified_count, res.modified_count))
 
     def get_hsg_flow(self, fr_ms=-1, to_ms=-1):
         filter = {}

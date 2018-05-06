@@ -28,6 +28,17 @@ class MyTestCase(unittest.TestCase):
         self.assertEqual(share.iloc[0][moneydb.COL_TRADE_DATE],
                          online.iloc[0]['STAT_DATE'])
 
+    def test_get_gcr_ohlc(self):
+        sh_df = _modb.get_gcr_ohlc('sh204002')
+        sh_df = sh_df.sort_values(by=moneydb.COL_MILLISECONDS)
+        sz_df = _modb.get_gcr_ohlc('sz131811')
+        sz_df = sz_df.sort_values(by=moneydb.COL_MILLISECONDS)
+        print(sh_df[moneydb.COL_TRADE_DATE])
+        print(sz_df[moneydb.COL_TRADE_DATE])
+
+    def test_update_gcr_locked_amount(self):
+        _modb.update_gcr_locked_amount(isodate_to_milliseconds('2018-05-02'))
+
 
 if __name__ == '__main__':
     unittest.main()
